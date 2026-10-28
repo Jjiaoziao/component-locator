@@ -1,0 +1,1577 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>料盒查料定位助手 (纯享单文件版)</title>
+  <style>
+    :root {
+      --primary: #2563EB;
+      --primary-light: #EFF6FF;
+      --primary-hover: #1D4ED8;
+      --bg: #FFFFFF;
+      --surface: #F8FAFC;
+      --surface-subtle: #F1F5F9;
+      --border: #E2E8F0;
+      --border-dark: #CBD5E1;
+      --text-main: #0F172A;
+      --text-sub: #475569;
+      --text-muted: #94A3B8;
+      --danger: #DC2626;
+      --danger-bg: #FEF2F2;
+      --danger-border: #FCA5A5;
+      --highlight-bg: #FEF3C7;
+      --highlight-border: #D97706;
+      --highlight-text: #B45309;
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      line-height: 1.45;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 顶部导航 */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: #FFFFFF;
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--primary-light);
+      color: var(--primary);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .brand-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .brand-badge {
+      font-size: 11px;
+      background: #F1F5F9;
+      color: #64748B;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-icon {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-sub);
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .btn-icon:active {
+      background: #F1F5F9;
+    }
+
+    /* 视图切换 TAB (底部或顶部快捷切换) */
+    .view-tabs {
+      display: flex;
+      background: #FFFFFF;
+      border-bottom: 1px solid var(--border);
+      padding: 6px 16px;
+      gap: 8px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 9px 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-sub);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #FFFFFF;
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+    }
+
+    /* 主内容区 */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .screen {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    /* ========== 页面 1：极速查料 ========== */
+    .search-screen {
+      padding: 16px;
+      gap: 16px;
+    }
+
+    .search-card {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-sub);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .label-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .input-box {
+      width: 100%;
+      height: 44px;
+      padding: 0 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 15px;
+      color: var(--text-main);
+      background: #FFFFFF;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .input-box:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    /* 快捷封装标签 */
+    .chips-row {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      scrollbar-width: none;
+    }
+    .chips-row::-webkit-scrollbar {
+      display: none;
+    }
+
+    .chip {
+      padding: 4px 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--text-sub);
+      cursor: pointer;
+      white-space: nowrap;
+      user-select: none;
+    }
+    .chip.active {
+      background: var(--primary-light);
+      border-color: var(--primary);
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    /* 误差单选栏与输入 */
+    .tolerance-control {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .tol-btn {
+      flex: 1;
+      height: 38px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-sub);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .tol-btn.active {
+      background: var(--primary-light);
+      border-color: var(--primary);
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    .tol-custom-wrapper {
+      position: relative;
+      width: 90px;
+    }
+
+    .tol-custom-input {
+      width: 100%;
+      height: 38px;
+      padding-left: 22px;
+      padding-right: 20px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      color: var(--text-main);
+      text-align: center;
+      outline: none;
+    }
+    .tol-custom-input:focus {
+      border-color: var(--primary);
+    }
+    .tol-prefix {
+      position: absolute;
+      left: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .tol-suffix {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .btn-reset {
+      border: none;
+      background: none;
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 4px 8px;
+    }
+
+    /* 搜索结果区 */
+    .results-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 4px;
+    }
+
+    .results-count {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-sub);
+    }
+
+    .results-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .result-card {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+    }
+
+    .result-card:active {
+      transform: scale(0.99);
+      background: var(--surface);
+    }
+
+    .result-card.is-shortage {
+      border-color: var(--danger-border);
+      background: #FFFBFB;
+    }
+
+    .result-main {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .result-title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .result-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .badge-package {
+      background: #F1F5F9;
+      color: #475569;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .badge-tol {
+      background: #ECFDF5;
+      color: #059669;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .badge-shortage {
+      background: var(--danger-bg);
+      color: var(--danger);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .result-coords-text {
+      font-size: 13px;
+      color: var(--text-sub);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .result-locate-action {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--primary-light);
+      color: var(--primary);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 16px;
+      color: var(--text-muted);
+      font-size: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ========== 页面 2：料盒实景定位 ========== */
+    .grid-screen {
+      padding: 12px 16px;
+      gap: 12px;
+    }
+
+    /* 料盒选择器 */
+    .box-selector-row {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+    }
+    .box-selector-row::-webkit-scrollbar {
+      display: none;
+    }
+
+    .box-pill {
+      flex-shrink: 0;
+      padding: 7px 14px;
+      border: 1px solid var(--border);
+      background: #FFFFFF;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-sub);
+      cursor: pointer;
+    }
+
+    .box-pill.active {
+      background: var(--text-main);
+      color: #FFFFFF;
+      border-color: var(--text-main);
+    }
+
+    /* 高亮定位提示条 */
+    .location-banner {
+      background: var(--highlight-bg);
+      border: 1px solid var(--highlight-border);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 4px rgba(217, 119, 6, 0.1);
+    }
+
+    .banner-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .banner-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--highlight-text);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .banner-desc {
+      font-size: 12px;
+      color: #92400E;
+    }
+
+    .banner-clear {
+      font-size: 12px;
+      color: #92400E;
+      background: rgba(255, 255, 255, 0.6);
+      border: 1px solid #FDE68A;
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    /* 网格容器 */
+    .grid-card {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+      overflow-x: auto;
+    }
+
+    .grid-table {
+      width: 100%;
+      min-width: 320px;
+      border-collapse: separate;
+      border-spacing: 5px;
+    }
+
+    .col-header {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-align: center;
+      padding-bottom: 6px;
+    }
+
+    .row-header {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-align: right;
+      padding-right: 6px;
+      width: 48px;
+      white-space: nowrap;
+    }
+
+    .grid-cell {
+      height: 48px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--surface);
+      text-align: center;
+      vertical-align: middle;
+      padding: 2px 4px;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .grid-cell:active {
+      transform: scale(0.96);
+    }
+
+    .cell-val {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-main);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      line-height: 1.2;
+    }
+
+    .cell-pkg {
+      font-size: 9px;
+      color: var(--text-sub);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      line-height: 1.1;
+    }
+
+    /* 目标高亮格子 (强对比琥珀金光环) */
+    .grid-cell.highlighted {
+      background: #FEF3C7 !important;
+      border: 2px solid #D97706 !important;
+      box-shadow: 0 0 12px rgba(217, 119, 6, 0.5) !important;
+      animation: pulse-ring 1.8s infinite;
+      z-index: 10;
+    }
+
+    .grid-cell.highlighted .cell-val {
+      color: #92400E;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .target-badge {
+      position: absolute;
+      top: -6px;
+      right: -4px;
+      background: #D97706;
+      color: #FFFFFF;
+      font-size: 8px;
+      font-weight: 800;
+      padding: 1px 4px;
+      border-radius: 4px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    /* 缺料格子 (红色醒目) */
+    .grid-cell.is-shortage {
+      background: var(--danger-bg);
+      border-color: var(--danger-border);
+    }
+    .grid-cell.is-shortage .cell-val {
+      color: var(--danger);
+    }
+    .shortage-dot {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--danger);
+    }
+
+    @keyframes pulse-ring {
+      0% {
+        box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.6);
+      }
+      70% {
+        box-shadow: 0 0 0 8px rgba(217, 119, 6, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(217, 119, 6, 0);
+      }
+    }
+
+    /* 图例栏 */
+    .legend-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 4px;
+      font-size: 12px;
+      color: var(--text-sub);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .legend-box {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+    }
+
+    /* 底部弹窗 / 详情抽屉 */
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 100;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .modal-backdrop.show {
+      display: flex;
+    }
+
+    .bottom-sheet {
+      background: #FFFFFF;
+      width: 100%;
+      max-width: 500px;
+      border-radius: 16px 16px 0 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      animation: slide-up 0.25s ease-out;
+      box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    @keyframes slide-up {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .sheet-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .sheet-title {
+      font-size: 17px;
+      font-weight: 700;
+    }
+
+    .sheet-close {
+      background: none;
+      border: none;
+      font-size: 20px;
+      color: var(--text-sub);
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      background: var(--surface);
+      padding: 12px;
+      border-radius: var(--radius-sm);
+    }
+
+    .detail-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .detail-k {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .detail-v {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .copy-btn {
+      width: 100%;
+      height: 44px;
+      background: var(--primary);
+      color: #FFFFFF;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .copy-btn:active {
+      background: var(--primary-hover);
+    }
+
+    /* 管理员数据抽屉 */
+    .admin-modal {
+      background: #FFFFFF;
+      width: 90%;
+      max-width: 500px;
+      border-radius: var(--radius);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .admin-textarea {
+      width: 100%;
+      height: 160px;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: monospace;
+      font-size: 12px;
+      resize: vertical;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.9);
+      color: #FFFFFF;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      z-index: 200;
+      display: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 顶部导航 -->
+  <header>
+    <div class="header-left">
+      <div class="brand-icon">料</div>
+      <div>
+        <div class="brand-title">料盒定位助手</div>
+      </div>
+      <span class="brand-badge">纯享离线版</span>
+    </div>
+    <div class="header-actions">
+      <button class="btn-icon" title="手机扫码/二维码" onclick="openQrModal()">📱</button>
+      <button class="btn-icon" title="导出/数据维护" onclick="openAdminModal()">⚙️</button>
+    </div>
+  </header>
+
+  <!-- 视图切换 -->
+  <div class="view-tabs">
+    <button class="tab-btn active" id="tabSearch" onclick="switchTab('search')">
+      <span>🔍</span> 极速查料
+    </button>
+    <button class="tab-btn" id="tabGrid" onclick="switchTab('grid')">
+      <span>📦</span> 料盒网格定位
+    </button>
+  </div>
+
+  <main>
+    <!-- ================= 页面 1：极速查料 ================= -->
+    <div class="screen search-screen active" id="screenSearch">
+      <!-- 搜索条件卡片 -->
+      <div class="search-card">
+        <!-- 封装 -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>封装规格 (Package)</span>
+            <span class="label-hint">可手动输入或点击快捷标签</span>
+          </div>
+          <input type="text" id="inputPackage" class="input-box" placeholder="例如: 0805, 0603, SOP-8" oninput="onSearchChange()">
+          <div class="chips-row">
+            <span class="chip" onclick="quickSelectPkg('')">全部</span>
+            <span class="chip" onclick="quickSelectPkg('0402')">0402</span>
+            <span class="chip" onclick="quickSelectPkg('0603')">0603</span>
+            <span class="chip" onclick="quickSelectPkg('0805')">0805</span>
+            <span class="chip" onclick="quickSelectPkg('1206')">1206</span>
+            <span class="chip" onclick="quickSelectPkg('SOP-8')">SOP-8</span>
+            <span class="chip" onclick="quickSelectPkg('SOT-23')">SOT-23</span>
+            <span class="chip" onclick="quickSelectPkg('TO-220')">TO-220</span>
+          </div>
+        </div>
+
+        <!-- 数值 -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>阻值 / 容值 / 型号数值</span>
+            <span class="label-hint">例如: 10k, 100n, 4.7u, 100</span>
+          </div>
+          <input type="text" id="inputValue" class="input-box" placeholder="输入数值，如 10k, 100nF, 4.7uF" oninput="onSearchChange()">
+        </div>
+
+        <!-- 误差值 (去除百分号冗余) -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>误差值 (Tolerance)</span>
+            <button class="btn-reset" onclick="resetTolerance()">清空</button>
+          </div>
+          <div class="tolerance-control">
+            <button class="tol-btn active" id="tolAll" onclick="selectTol('')">全部</button>
+            <button class="tol-btn" id="tol1" onclick="selectTol('±1%')">±1%</button>
+            <button class="tol-btn" id="tol5" onclick="selectTol('±5%')">±5%</button>
+            <button class="tol-btn" id="tol10" onclick="selectTol('±10%')">±10%</button>
+            <div class="tol-custom-wrapper">
+              <span class="tol-prefix">±</span>
+              <input type="number" id="inputTolCustom" class="tol-custom-input" placeholder="自定义" oninput="onCustomTolInput()">
+              <span class="tol-suffix">%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 搜索结果列表 -->
+      <div class="results-section">
+        <div class="results-header">
+          <span class="results-count" id="resultsCount">匹配到 0 个元器件</span>
+          <button class="btn-reset" onclick="clearAllFilters()">重置所有搜索</button>
+        </div>
+
+        <div class="results-list" id="resultsList">
+          <!-- 动态填充 -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 页面 2：料盒实景定位 ================= -->
+    <div class="screen grid-screen" id="screenGrid">
+      <!-- 料盒选择按钮 -->
+      <div class="box-selector-row" id="boxSelector">
+        <!-- 动态生成 1号 ~ 5号料盒 -->
+      </div>
+
+      <!-- 定位提示条 (如果有选中高亮) -->
+      <div class="location-banner" id="locationBanner" style="display: none;">
+        <div class="banner-text">
+          <div class="banner-title">
+            <span>🎯</span> <span id="bannerTitleText">已定位: 0805 10k ±1%</span>
+          </div>
+          <div class="banner-desc" id="bannerDescText">位于 1号料盒 · 第3行 第2列 (坐标 3-2)</div>
+        </div>
+        <button class="banner-clear" onclick="clearHighlight()">清除高亮</button>
+      </div>
+
+      <!-- 图例说明 -->
+      <div class="legend-row">
+        <div class="legend-item">
+          <div class="legend-box" style="background: #FEF3C7; border: 2px solid #D97706;"></div>
+          <span>当前目标 (高亮闪烁)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-box" style="background: #FEF2F2; border: 1px solid #FCA5A5;"></div>
+          <span>缺料待补 (红底)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-box" style="background: #F8FAFC; border: 1px solid #E2E8F0;"></div>
+          <span>正常物料</span>
+        </div>
+      </div>
+
+      <!-- 10行 5列 网格表格 -->
+      <div class="grid-card">
+        <table class="grid-table" id="gridTable">
+          <!-- 动态生成 -->
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- 底部器件详情弹窗 (轻量抽屉) -->
+  <div class="modal-backdrop" id="detailModalBackdrop" onclick="closeDetailModal(event)">
+    <div class="bottom-sheet" onclick="event.stopPropagation()">
+      <div class="sheet-header">
+        <div class="sheet-title" id="sheetTitle">元器件位置详情</div>
+        <button class="sheet-close" onclick="closeDetailModal()">✕</button>
+      </div>
+
+      <div class="detail-grid">
+        <div class="detail-cell">
+          <span class="detail-k">所在料盒</span>
+          <span class="detail-v" id="detailBoxName">-</span>
+        </div>
+        <div class="detail-cell">
+          <span class="detail-k">物理坐标</span>
+          <span class="detail-v" id="detailCoords">-</span>
+        </div>
+        <div class="detail-cell">
+          <span class="detail-k">封装规格</span>
+          <span class="detail-v" id="detailPackage">-</span>
+        </div>
+        <div class="detail-cell">
+          <span class="detail-k">阻容值 / 型号</span>
+          <span class="detail-v" id="detailValue">-</span>
+        </div>
+        <div class="detail-cell">
+          <span class="detail-k">误差精度</span>
+          <span class="detail-v" id="detailTolerance">-</span>
+        </div>
+        <div class="detail-cell">
+          <span class="detail-k">库存状态</span>
+          <span class="detail-v" id="detailStatus">-</span>
+        </div>
+      </div>
+
+      <button class="copy-btn" onclick="copyShortageReport()">
+        <span>📋</span> 复制缺料报备给管理员
+      </button>
+    </div>
+  </div>
+
+  <!-- 手机扫码弹窗 -->
+  <div class="modal-backdrop" id="qrModalBackdrop" onclick="closeQrModal(event)">
+    <div class="admin-modal" style="text-align:center; align-items:center;" onclick="event.stopPropagation()">
+      <div class="sheet-header" style="width:100%;">
+        <div class="sheet-title">📱 手机扫码免登查料</div>
+        <button class="sheet-close" onclick="closeQrModal()">✕</button>
+      </div>
+      <p style="font-size: 13px; color: var(--text-sub);">
+        手机（微信/相机）扫描下方二维码即可免登录直接访问：
+      </p>
+      <div style="background:#FFF; padding:10px; border:1px solid var(--border); border-radius:10px; margin:8px 0;">
+        <img id="pageQrImg" src="" alt="二维码加载中..." style="width:200px; height:200px; display:block;">
+      </div>
+      <div style="font-size:11px; color:var(--text-muted); word-break:break-all;" id="pageQrUrl"></div>
+      <button class="copy-btn" onclick="savePageQr()">
+        <span>💾</span> 保存二维码图片
+      </button>
+    </div>
+  </div>
+
+  <!-- 管理员数据导出/导入弹窗 -->
+  <div class="modal-backdrop" id="adminModalBackdrop" onclick="closeAdminModal(event)">
+    <div class="admin-modal" onclick="event.stopPropagation()">
+      <div class="sheet-header">
+        <div class="sheet-title">⚙️ 数据总表维护 (管理员)</div>
+        <button class="sheet-close" onclick="closeAdminModal()">✕</button>
+      </div>
+      <p style="font-size: 12px; color: var(--text-sub);">
+        本网页为纯静态单文件，无需任何后端或谷歌账号。您可以在电脑端修改下面的数据JSON，或点击保存下载单文件直接发给产线工人：
+      </p>
+      <div style="display:flex; gap:8px;">
+        <button class="copy-btn" style="flex:1; height:36px; font-size:13px;" onclick="downloadSingleFileHtml()">
+          💾 导出下载此单文件(HTML)
+        </button>
+        <button class="copy-btn" style="flex:1; height:36px; font-size:13px; background:#475569;" onclick="copyCurrentJson()">
+          📋 复制数据JSON
+        </button>
+      </div>
+      <textarea id="adminJsonText" class="admin-textarea" placeholder="在此粘贴更新后的 JSON 数据..."></textarea>
+      <button class="copy-btn" style="background:#16A34A;" onclick="importJsonData()">
+        ✅ 应用新数据到网页
+      </button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ================= 默认物料数据集 (5个料盒，每个10行5列，共250格) =================
+    // 可以在电脑端随时通过总表更新替换本数据
+    const INITIAL_BOXES = [
+      { id: "box_1", name: "1号料盒 (常用贴片电阻 0805/0603)", totalRows: 10, totalCols: 5 },
+      { id: "box_2", name: "2号料盒 (高精贴片电阻 ±1%)", totalRows: 10, totalCols: 5 },
+      { id: "box_3", name: "3号料盒 (贴片电容 0402/0603/0805)", totalRows: 10, totalCols: 5 },
+      { id: "box_4", name: "4号料盒 (电感/磁珠/二极管/三极管)", totalRows: 10, totalCols: 5 },
+      { id: "box_5", name: "5号料盒 (集成IC/芯片/LDO稳压)", totalRows: 10, totalCols: 5 }
+    ];
+
+    // 生成5个料盒的真实示例数据
+    function generateInitialComponents() {
+      const list = [];
+      
+      // 1号料盒: 0805/0603 常用电阻 (部分有缺料示范)
+      const resValues = ["0Ω", "10Ω", "22Ω", "47Ω", "100Ω", "220Ω", "330Ω", "470Ω", "1k", "2k", "4.7k", "10k", "20k", "47k", "100k", "220k", "470k", "1M", "10M"];
+      for (let r = 1; r <= 10; r++) {
+        for (let c = 1; c <= 5; c++) {
+          const idx = ((r - 1) * 5 + (c - 1)) % resValues.length;
+          const pkg = (r <= 5) ? "0805" : "0603";
+          const tol = (c % 2 === 0) ? "±1%" : "±5%";
+          const isShortage = (r === 3 && c === 2) || (r === 7 && c === 4); // 示范缺料
+          list.push({
+            id: `b1_r${r}_c${c}`,
+            boxId: "box_1",
+            boxName: "1号料盒",
+            row: r,
+            col: c,
+            name: `${resValues[idx]} 电阻`,
+            value: resValues[idx],
+            package: pkg,
+            tolerance: tol,
+            isShortage: isShortage,
+            stock: isShortage ? 0 : 50
+          });
+        }
+      }
+
+      // 2号料盒: 精密贴片电阻 ±1% (0402 / 0603 / 0805)
+      const precValues = ["120Ω", "150Ω", "270Ω", "390Ω", "510Ω", "680Ω", "1.2k", "1.5k", "2.7k", "3.3k", "5.1k", "6.8k", "7.5k", "8.2k", "12k", "15k", "18k", "27k", "33k", "39k", "51k", "68k", "82k", "150k", "330k"];
+      for (let r = 1; r <= 10; r++) {
+        for (let c = 1; c <= 5; c++) {
+          const idx = ((r - 1) * 5 + (c - 1)) % precValues.length;
+          const pkg = (r <= 4) ? "0603" : (r <= 8 ? "0805" : "0402");
+          const isShortage = (r === 2 && c === 3);
+          list.push({
+            id: `b2_r${r}_c${c}`,
+            boxId: "box_2",
+            boxName: "2号料盒",
+            row: r,
+            col: c,
+            name: `${precValues[idx]} 高精电阻`,
+            value: precValues[idx],
+            package: pkg,
+            tolerance: "±1%",
+            isShortage: isShortage,
+            stock: isShortage ? 0 : 80
+          });
+        }
+      }
+
+      // 3号料盒: 贴片电容
+      const capValues = ["10pF", "22pF", "47pF", "100pF", "1nF", "10nF", "47nF", "100nF", "220nF", "1uF", "2.2uF", "4.7uF", "10uF", "22uF", "47uF"];
+      for (let r = 1; r <= 10; r++) {
+        for (let c = 1; c <= 5; c++) {
+          const idx = ((r - 1) * 5 + (c - 1)) % capValues.length;
+          const pkg = (r <= 4) ? "0603" : (r <= 7 ? "0805" : "1206");
+          const tol = (c <= 2) ? "±5%" : "±10%";
+          const isShortage = (r === 5 && c === 1);
+          list.push({
+            id: `b3_r${r}_c${c}`,
+            boxId: "box_3",
+            boxName: "3号料盒",
+            row: r,
+            col: c,
+            name: `${capValues[idx]} 贴片电容`,
+            value: capValues[idx],
+            package: pkg,
+            tolerance: tol,
+            isShortage: isShortage,
+            stock: isShortage ? 0 : 100
+          });
+        }
+      }
+
+      // 4号料盒: 二极管/三极管/MOS管/电感
+      const semiValues = ["1N4148", "SS14", "SS34", "B5819W", "S8050", "S8550", "SS8050", "2N7002", "AO3400", "AO3401", "SI2301", "SI2302", "10uH", "22uH", "47uH", "100uH", "BLM18", "MBR0520"];
+      for (let r = 1; r <= 10; r++) {
+        for (let c = 1; c <= 5; c++) {
+          const idx = ((r - 1) * 5 + (c - 1)) % semiValues.length;
+          const pkg = (r <= 3) ? "SOD-123" : (r <= 6 ? "SOT-23" : (r <= 8 ? "0805" : "SMA"));
+          list.push({
+            id: `b4_r${r}_c${c}`,
+            boxId: "box_4",
+            boxName: "4号料盒",
+            row: r,
+            col: c,
+            name: semiValues[idx],
+            value: semiValues[idx],
+            package: pkg,
+            tolerance: "-",
+            isShortage: false,
+            stock: 60
+          });
+        }
+      }
+
+      // 5号料盒: 芯片/LDO/模块
+      const icValues = ["AMS1117-3.3", "AMS1117-5.0", "ME6211C33", "LM358", "NE555", "CH340N", "CH340C", "MAX485", "TJA1050", "STM32F103", "ESP-01S", "TP4056", "XL6009", "PC817", "ULN2003"];
+      for (let r = 1; r <= 10; r++) {
+        for (let c = 1; c <= 5; c++) {
+          const idx = ((r - 1) * 5 + (c - 1)) % icValues.length;
+          const pkg = (r <= 4) ? "SOT-223" : (r <= 7 ? "SOP-8" : (r <= 9 ? "SOP-16" : "QFN-32"));
+          const isShortage = (r === 1 && c === 1);
+          list.push({
+            id: `b5_r${r}_c${c}`,
+            boxId: "box_5",
+            boxName: "5号料盒",
+            row: r,
+            col: c,
+            name: icValues[idx],
+            value: icValues[idx],
+            package: pkg,
+            tolerance: "-",
+            isShortage: isShortage,
+            stock: isShortage ? 0 : 30
+          });
+        }
+      }
+
+      return list;
+    }
+
+    // 运行时数据状态
+    let allBoxes = INITIAL_BOXES;
+    let allComponents = generateInitialComponents();
+
+    // 尝试从本地存储读取（如果用户之前导入过新数据）
+    try {
+      const saved = localStorage.getItem("LOCAL_COMPONENT_DATA");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.items && parsed.items.length) {
+          allComponents = parsed.items;
+          if (parsed.boxes) allBoxes = parsed.boxes;
+        }
+      }
+    } catch(e) {}
+
+    // 当前筛选状态
+    let filterPkg = "";
+    let filterVal = "";
+    let filterTol = "";
+
+    // 当前高亮与选中的料盒
+    let currentBoxId = "box_1";
+    let targetComponentId = null;
+    let selectedDetailItem = null;
+
+    // ================= 初始化 =================
+    window.onload = function() {
+      renderBoxPills();
+      renderGrid();
+      onSearchChange();
+    };
+
+    function showToast(msg) {
+      const t = document.getElementById("toast");
+      t.innerText = msg;
+      t.style.display = "block";
+      setTimeout(() => { t.style.display = "none"; }, 2000);
+    }
+
+    // ================= TAB 切换 =================
+    function switchTab(tab) {
+      document.getElementById("tabSearch").classList.toggle("active", tab === 'search');
+      document.getElementById("tabGrid").classList.toggle("active", tab === 'grid');
+      document.getElementById("screenSearch").classList.toggle("active", tab === 'search');
+      document.getElementById("screenGrid").classList.toggle("active", tab === 'grid');
+
+      if (tab === 'grid') {
+        renderGrid();
+        scrollHighlightIntoView();
+      }
+    }
+
+    // ================= 搜索功能 =================
+    function quickSelectPkg(pkg) {
+      filterPkg = pkg;
+      document.getElementById("inputPackage").value = pkg;
+      document.querySelectorAll(".chips-row .chip").forEach(el => {
+        el.classList.toggle("active", el.innerText.trim() === (pkg || "全部"));
+      });
+      onSearchChange();
+    }
+
+    function selectTol(tol) {
+      filterTol = tol;
+      document.getElementById("inputTolCustom").value = "";
+      document.getElementById("tolAll").classList.toggle("active", tol === '');
+      document.getElementById("tol1").classList.toggle("active", tol === '±1%');
+      document.getElementById("tol5").classList.toggle("active", tol === '±5%');
+      document.getElementById("tol10").classList.toggle("active", tol === '±10%');
+      onSearchChange();
+    }
+
+    function onCustomTolInput() {
+      const v = document.getElementById("inputTolCustom").value.trim();
+      if (v) {
+        filterTol = `±${v}%`;
+        document.querySelectorAll(".tol-btn").forEach(b => b.classList.remove("active"));
+      } else {
+        filterTol = "";
+        document.getElementById("tolAll").classList.add("active");
+      }
+      onSearchChange();
+    }
+
+    function resetTolerance() {
+      selectTol('');
+    }
+
+    function clearAllFilters() {
+      filterPkg = "";
+      filterVal = "";
+      filterTol = "";
+      document.getElementById("inputPackage").value = "";
+      document.getElementById("inputValue").value = "";
+      document.getElementById("inputTolCustom").value = "";
+      document.querySelectorAll(".chips-row .chip").forEach((el, i) => {
+        el.classList.toggle("active", i === 0);
+      });
+      selectTol('');
+      onSearchChange();
+    }
+
+    function onSearchChange() {
+      filterPkg = document.getElementById("inputPackage").value.trim();
+      filterVal = document.getElementById("inputValue").value.trim();
+
+      const matched = allComponents.filter(item => {
+        // 封装匹配 (忽略大小写)
+        if (filterPkg && !item.package.toLowerCase().includes(filterPkg.toLowerCase())) {
+          return false;
+        }
+        // 数值匹配 (忽略大小写，支持如 10k, 100n, 100)
+        if (filterVal) {
+          const searchV = filterVal.toLowerCase().replace(/ω|r|ohm/g, '');
+          const itemV = item.value.toLowerCase().replace(/ω|r|ohm/g, '');
+          const itemName = item.name.toLowerCase();
+          if (!itemV.includes(searchV) && !itemName.includes(searchV)) {
+            return false;
+          }
+        }
+        // 误差匹配
+        if (filterTol && !item.tolerance.includes(filterTol.replace(/±|%/g, ''))) {
+          return false;
+        }
+        return true;
+      });
+
+      renderSearchResults(matched);
+    }
+
+    function renderSearchResults(items) {
+      const countEl = document.getElementById("resultsCount");
+      const listEl = document.getElementById("resultsList");
+      countEl.innerText = `找到 ${items.length} 个符合物料`;
+
+      if (items.length === 0) {
+        listEl.innerHTML = `
+          <div class="empty-state">
+            <span style="font-size:32px;">🔍</span>
+            <span>未找到匹配的元器件</span>
+            <span style="font-size:12px;">请尝试缩短搜索词或重置筛选条件</span>
+          </div>
+        `;
+        return;
+      }
+
+      listEl.innerHTML = items.map(item => `
+        <div class="result-card ${item.isShortage ? 'is-shortage' : ''}" onclick="locateAndHighlight('${item.id}')">
+          <div class="result-main">
+            <div class="result-title-row">
+              <span class="result-name">${item.value} ${item.name.replace(item.value, '').trim()}</span>
+              <span class="badge-package">${item.package}</span>
+              ${item.tolerance && item.tolerance !== '-' ? `<span class="badge-tol">${item.tolerance}</span>` : ''}
+              ${item.isShortage ? `<span class="badge-shortage">⚠️ 缺料待补</span>` : ''}
+            </div>
+            <div class="result-coords-text">
+              <span>📦 ${item.boxName}</span>
+              <span>•</span>
+              <span style="font-weight:600; color:var(--primary);">第${item.row}行 第${item.col}列 (坐标 ${item.row}-${item.col})</span>
+            </div>
+          </div>
+          <div class="result-locate-action">
+            <span>定位</span>
+            <span>👉</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ================= 定位与高亮 =================
+    function locateAndHighlight(itemId) {
+      const item = allComponents.find(c => c.id === itemId);
+      if (!item) return;
+
+      currentBoxId = item.boxId;
+      targetComponentId = item.id;
+
+      // 切换到网格页
+      switchTab('grid');
+      renderBoxPills();
+      renderGrid();
+
+      // 更新高亮条幅
+      const banner = document.getElementById("locationBanner");
+      banner.style.display = "flex";
+      document.getElementById("bannerTitleText").innerText = `已高亮: ${item.package} ${item.value} ${item.tolerance}`;
+      document.getElementById("bannerDescText").innerText = `位于 ${item.boxName} · 第${item.row}行 第${item.col}列 (坐标 ${item.row}-${item.col})`;
+
+      scrollHighlightIntoView();
+      showToast(`已精确定位到第${item.row}行 第${item.col}列`);
+    }
+
+    function clearHighlight() {
+      targetComponentId = null;
+      document.getElementById("locationBanner").style.display = "none";
+      renderGrid();
+    }
+
+    function scrollHighlightIntoView() {
+      setTimeout(() => {
+        const hl = document.querySelector(".grid-cell.highlighted");
+        if (hl) {
+          hl.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+        }
+      }, 100);
+    }
+
+    // ================= 料盒网格渲染 =================
+    function renderBoxPills() {
+      const container = document.getElementById("boxSelector");
+      container.innerHTML = allBoxes.map(b => `
+        <button class="box-pill ${b.id === currentBoxId ? 'active' : ''}" onclick="selectBox('${b.id}')">
+          ${b.name.split(' ')[0]}
+        </button>
+      `).join('');
+    }
+
+    function selectBox(boxId) {
+      currentBoxId = boxId;
+      renderBoxPills();
+      renderGrid();
+    }
+
+    function renderGrid() {
+      const box = allBoxes.find(b => b.id === currentBoxId) || allBoxes[0];
+      const table = document.getElementById("gridTable");
+      
+      const totalRows = box.totalRows || 10;
+      const totalCols = box.totalCols || 5;
+
+      // 构建列头
+      let html = '<thead><tr><th class="row-header"></th>';
+      for (let c = 1; c <= totalCols; c++) {
+        html += `<th class="col-header">第${c}列</th>`;
+      }
+      html += '</tr></thead><tbody>';
+
+      // 快速映射当前盒子的元器件
+      const itemMap = {};
+      allComponents.filter(i => i.boxId === currentBoxId).forEach(i => {
+        itemMap[`${i.row}_${i.col}`] = i;
+      });
+
+      // 构建行与单元格
+      for (let r = 1; r <= totalRows; r++) {
+        html += `<tr><td class="row-header">第${r}行</td>`;
+        for (let c = 1; c <= totalCols; c++) {
+          const item = itemMap[`${r}_${c}`];
+          if (item) {
+            const isHighlight = (item.id === targetComponentId);
+            html += `
+              <td class="grid-cell ${isHighlight ? 'highlighted' : ''} ${item.isShortage ? 'is-shortage' : ''}" 
+                  onclick="openCellDetail('${item.id}')">
+                ${isHighlight ? '<span class="target-badge">🎯 目标</span>' : ''}
+                ${item.isShortage ? '<span class="shortage-dot"></span>' : ''}
+                <div class="cell-val">${item.value}</div>
+                <div class="cell-pkg">${item.package}</div>
+              </td>
+            `;
+          } else {
+            html += `
+              <td class="grid-cell" style="opacity:0.3;">
+                <div class="cell-val">-</div>
+                <div class="cell-pkg">空</div>
+              </td>
+            `;
+          }
+        }
+        html += '</tr>';
+      }
+      html += '</tbody>';
+      table.innerHTML = html;
+    }
+
+    // ================= 详情弹窗与缺料报备 =================
+    function openCellDetail(itemId) {
+      const item = allComponents.find(c => c.id === itemId);
+      if (!item) return;
+      selectedDetailItem = item;
+
+      document.getElementById("sheetTitle").innerText = `${item.value} ${item.name.replace(item.value, '').trim()}`;
+      document.getElementById("detailBoxName").innerText = item.boxName;
+      document.getElementById("detailCoords").innerText = `第${item.row}行 第${item.col}列 (${item.row}-${item.col})`;
+      document.getElementById("detailPackage").innerText = item.package;
+      document.getElementById("detailValue").innerText = item.value;
+      document.getElementById("detailTolerance").innerText = item.tolerance || '-';
+      document.getElementById("detailStatus").innerText = item.isShortage ? "⚠️ 缺料待补 (无库存)" : "✅ 正常 (有余量)";
+      document.getElementById("detailStatus").style.color = item.isShortage ? "var(--danger)" : "var(--success)";
+
+      document.getElementById("detailModalBackdrop").classList.add("show");
+    }
+
+    function closeDetailModal(e) {
+      document.getElementById("detailModalBackdrop").classList.remove("show");
+    }
+
+    function copyShortageReport() {
+      if (!selectedDetailItem) return;
+      const text = `【缺料报备】${selectedDetailItem.boxName} 第${selectedDetailItem.row}行第${selectedDetailItem.col}列（规格: ${selectedDetailItem.package} ${selectedDetailItem.value} ${selectedDetailItem.tolerance}）现场无料，请及时补料！`;
+      navigator.clipboard.writeText(text).then(() => {
+        showToast("已复制缺料信息，可直接粘贴微信发给管理员！");
+        closeDetailModal();
+      }).catch(() => {
+        prompt("请长按复制缺料信息发给管理员:", text);
+      });
+    }
+
+    // ================= 手机扫码弹窗 =================
+    function openQrModal() {
+      const url = window.location.href;
+      document.getElementById("pageQrUrl").innerText = url;
+      const targetUrl = url.startsWith("http") ? url : "https://github.com";
+      const qrApi = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(targetUrl)}&size=300x300&margin=10`;
+      document.getElementById("pageQrImg").src = qrApi;
+      document.getElementById("qrModalBackdrop").classList.add("show");
+    }
+
+    function closeQrModal(e) {
+      document.getElementById("qrModalBackdrop").classList.remove("show");
+    }
+
+    function savePageQr() {
+      const img = document.getElementById("pageQrImg");
+      const a = document.createElement("a");
+      a.href = img.src;
+      a.download = "料盒定位助手二维码.png";
+      a.target = "_blank";
+      a.click();
+    }
+
+    // ================= 管理员单文件导出与数据维护 =================
+    function openAdminModal() {
+      const payload = {
+        boxes: allBoxes,
+        items: allComponents,
+        lastUpdated: new Date().toISOString()
+      };
+      document.getElementById("adminJsonText").value = JSON.stringify(payload, null, 2);
+      document.getElementById("adminModalBackdrop").classList.add("show");
+    }
+
+    function closeAdminModal(e) {
+      document.getElementById("adminModalBackdrop").classList.remove("show");
+    }
+
+    function copyCurrentJson() {
+      const val = document.getElementById("adminJsonText").value;
+      navigator.clipboard.writeText(val).then(() => {
+        showToast("已复制全部数据 JSON");
+      }).catch(() => {
+        showToast("复制失败，请手动在文本框全选复制");
+      });
+    }
+
+    function importJsonData() {
+      try {
+        const val = document.getElementById("adminJsonText").value;
+        const parsed = JSON.parse(val);
+        if (parsed.items && Array.isArray(parsed.items)) {
+          allComponents = parsed.items;
+          if (parsed.boxes) allBoxes = parsed.boxes;
+          localStorage.setItem("LOCAL_COMPONENT_DATA", JSON.stringify(parsed));
+          renderBoxPills();
+          renderGrid();
+          onSearchChange();
+          closeAdminModal();
+          showToast("数据导入并应用成功！");
+        } else {
+          alert("JSON 格式不正确，必须包含 items 数组");
+        }
+      } catch (err) {
+        alert("JSON 解析失败: " + err.message);
+      }
+    }
+
+    function downloadSingleFileHtml() {
+      // 获取当前整个页面的 HTML 代码
+      const currentDocHtml = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+      const blob = new Blob([currentDocHtml], { type: "text/html;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "料盒定位助手.html";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showToast("已开始下载单文件 HTML！");
+    }
+  </script>
+</body>
+</html>
