@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>料盒查料定位助手 (纯享单文件版)</title>
+  <title>料盒查料定位助手 (Excel动态驱动版)</title>
+  <!-- 引入 SheetJS 解析 Excel (.xlsx) 文件 -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     :root {
       --primary: #2563EB;
@@ -23,6 +25,8 @@
       --highlight-bg: #FEF3C7;
       --highlight-border: #D97706;
       --highlight-text: #B45309;
+      --success: #16A34A;
+      --success-bg: #F0FDF4;
       --radius: 12px;
       --radius-sm: 8px;
     }
@@ -51,7 +55,7 @@
       z-index: 50;
       background: #FFFFFF;
       border-bottom: 1px solid var(--border);
-      padding: 12px 16px;
+      padding: 10px 16px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -64,31 +68,42 @@
     }
 
     .brand-icon {
-      width: 32px;
-      height: 32px;
+      width: 34px;
+      height: 34px;
       background: var(--primary-light);
       color: var(--primary);
       border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 16px;
+      font-size: 17px;
       font-weight: 800;
     }
 
     .brand-title {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
       color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
     .brand-badge {
       font-size: 11px;
-      background: #F1F5F9;
-      color: #64748B;
+      background: #ECFDF5;
+      color: #059669;
       padding: 2px 6px;
       border-radius: 4px;
-      font-weight: 500;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .brand-badge.offline {
+      background: #F1F5F9;
+      color: #64748B;
     }
 
     .header-actions {
@@ -101,20 +116,31 @@
       background: transparent;
       border: 1px solid var(--border);
       color: var(--text-sub);
-      width: 34px;
       height: 34px;
+      padding: 0 10px;
       border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 16px;
+      font-size: 13px;
+      font-weight: 600;
       cursor: pointer;
+      gap: 4px;
     }
     .btn-icon:active {
       background: #F1F5F9;
     }
 
-    /* 视图切换 TAB (底部或顶部快捷切换) */
+    .btn-primary-sm {
+      background: var(--primary);
+      color: #FFFFFF;
+      border: none;
+    }
+    .btn-primary-sm:active {
+      background: var(--primary-hover);
+    }
+
+    /* 视图切换 TAB */
     .view-tabs {
       display: flex;
       background: #FFFFFF;
@@ -162,6 +188,24 @@
 
     .screen.active {
       display: flex;
+    }
+
+    /* 数据状态条 */
+    .data-banner {
+      background: #F0FDF4;
+      border-bottom: 1px solid #BBF7D0;
+      padding: 6px 16px;
+      font-size: 12px;
+      color: #166534;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .data-banner.warning {
+      background: #FFFBEB;
+      border-bottom-color: #FDE68A;
+      color: #92400E;
     }
 
     /* ========== 页面 1：极速查料 ========== */
@@ -233,7 +277,7 @@
     }
 
     .chip {
-      padding: 4px 10px;
+      padding: 5px 12px;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 6px;
@@ -247,10 +291,10 @@
       background: var(--primary-light);
       border-color: var(--primary);
       color: var(--primary);
-      font-weight: 600;
+      font-weight: 700;
     }
 
-    /* 误差单选栏与输入 */
+    /* 误差控制 */
     .tolerance-control {
       display: flex;
       gap: 6px;
@@ -287,7 +331,7 @@
     .tol-custom-input {
       width: 100%;
       height: 38px;
-      padding-left: 22px;
+      padding-left: 20px;
       padding-right: 20px;
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
@@ -385,6 +429,7 @@
       display: flex;
       align-items: center;
       gap: 8px;
+      flex-wrap: wrap;
     }
 
     .result-name {
@@ -418,9 +463,6 @@
       font-weight: 700;
       padding: 2px 6px;
       border-radius: 4px;
-      display: flex;
-      align-items: center;
-      gap: 2px;
     }
 
     .result-coords-text {
@@ -461,21 +503,18 @@
       gap: 12px;
     }
 
-    /* 料盒选择器 */
+    /* 料盒选择器 (横向滑动药丸标签) */
     .box-selector-row {
       display: flex;
-      gap: 6px;
+      gap: 8px;
       overflow-x: auto;
-      padding-bottom: 4px;
-      scrollbar-width: none;
-    }
-    .box-selector-row::-webkit-scrollbar {
-      display: none;
+      padding: 4px 2px 8px 2px;
+      scrollbar-width: thin;
     }
 
     .box-pill {
       flex-shrink: 0;
-      padding: 7px 14px;
+      padding: 8px 14px;
       border: 1px solid var(--border);
       background: #FFFFFF;
       border-radius: 20px;
@@ -483,13 +522,29 @@
       font-weight: 600;
       color: var(--text-sub);
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
     }
 
     .box-pill.active {
       background: var(--text-main);
       color: #FFFFFF;
       border-color: var(--text-main);
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.25);
     }
+
+    .box-color-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .dot-yellow { background: #EAB308; }
+    .dot-green { background: #22C55E; }
+    .dot-blue { background: #3B82F6; }
+    .dot-red { background: #EF4444; }
 
     /* 高亮定位提示条 */
     .location-banner {
@@ -526,11 +581,12 @@
     .banner-clear {
       font-size: 12px;
       color: #92400E;
-      background: rgba(255, 255, 255, 0.6);
+      background: rgba(255, 255, 255, 0.7);
       border: 1px solid #FDE68A;
-      padding: 4px 8px;
+      padding: 4px 10px;
       border-radius: 6px;
       cursor: pointer;
+      font-weight: 600;
     }
 
     /* 网格容器 */
@@ -545,9 +601,9 @@
 
     .grid-table {
       width: 100%;
-      min-width: 320px;
+      min-width: 360px;
       border-collapse: separate;
-      border-spacing: 5px;
+      border-spacing: 6px;
     }
 
     .col-header {
@@ -569,13 +625,13 @@
     }
 
     .grid-cell {
-      height: 48px;
+      height: 52px;
       border: 1px solid var(--border);
-      border-radius: 6px;
+      border-radius: 8px;
       background: var(--surface);
       text-align: center;
       vertical-align: middle;
-      padding: 2px 4px;
+      padding: 4px 6px;
       cursor: pointer;
       position: relative;
       transition: all 0.2s ease;
@@ -587,8 +643,8 @@
     }
 
     .cell-val {
-      font-size: 11px;
-      font-weight: 700;
+      font-size: 12px;
+      font-weight: 800;
       color: var(--text-main);
       overflow: hidden;
       text-overflow: ellipsis;
@@ -597,27 +653,28 @@
     }
 
     .cell-pkg {
-      font-size: 9px;
+      font-size: 10px;
       color: var(--text-sub);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
       line-height: 1.1;
+      margin-top: 2px;
     }
 
-    /* 目标高亮格子 (强对比琥珀金光环) */
+    /* 目标高亮格子 (强对比琥珀金闪烁) */
     .grid-cell.highlighted {
       background: #FEF3C7 !important;
       border: 2px solid #D97706 !important;
-      box-shadow: 0 0 12px rgba(217, 119, 6, 0.5) !important;
+      box-shadow: 0 0 14px rgba(217, 119, 6, 0.5) !important;
       animation: pulse-ring 1.8s infinite;
       z-index: 10;
     }
 
     .grid-cell.highlighted .cell-val {
       color: #92400E;
-      font-size: 12px;
-      font-weight: 800;
+      font-size: 13px;
+      font-weight: 900;
     }
 
     .target-badge {
@@ -626,14 +683,14 @@
       right: -4px;
       background: #D97706;
       color: #FFFFFF;
-      font-size: 8px;
+      font-size: 9px;
       font-weight: 800;
-      padding: 1px 4px;
+      padding: 1px 5px;
       border-radius: 4px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.2);
     }
 
-    /* 缺料格子 (红色醒目) */
+    /* 缺料格子 */
     .grid-cell.is-shortage {
       background: var(--danger-bg);
       border-color: var(--danger-border);
@@ -643,8 +700,8 @@
     }
     .shortage-dot {
       position: absolute;
-      top: 3px;
-      left: 3px;
+      top: 4px;
+      left: 4px;
       width: 6px;
       height: 6px;
       border-radius: 50%;
@@ -652,15 +709,9 @@
     }
 
     @keyframes pulse-ring {
-      0% {
-        box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.6);
-      }
-      70% {
-        box-shadow: 0 0 0 8px rgba(217, 119, 6, 0);
-      }
-      100% {
-        box-shadow: 0 0 0 0 rgba(217, 119, 6, 0);
-      }
+      0% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.6); }
+      70% { box-shadow: 0 0 0 8px rgba(217, 119, 6, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0); }
     }
 
     /* 图例栏 */
@@ -787,10 +838,10 @@
       background: var(--primary-hover);
     }
 
-    /* 管理员数据抽屉 */
+    /* 模态框通用 */
     .admin-modal {
       background: #FFFFFF;
-      width: 90%;
+      width: 92%;
       max-width: 500px;
       border-radius: var(--radius);
       padding: 20px;
@@ -799,15 +850,18 @@
       gap: 14px;
     }
 
-    .admin-textarea {
-      width: 100%;
-      height: 160px;
-      padding: 10px;
-      border: 1px solid var(--border);
+    .excel-drop-zone {
+      border: 2px dashed var(--border-dark);
       border-radius: var(--radius-sm);
-      font-family: monospace;
-      font-size: 12px;
-      resize: vertical;
+      padding: 24px 16px;
+      text-align: center;
+      background: var(--surface);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .excel-drop-zone:hover {
+      border-color: var(--primary);
+      background: var(--primary-light);
     }
 
     .toast {
@@ -817,12 +871,13 @@
       transform: translateX(-50%);
       background: rgba(15, 23, 42, 0.9);
       color: #FFFFFF;
-      padding: 8px 16px;
+      padding: 8px 18px;
       border-radius: 20px;
       font-size: 13px;
       z-index: 200;
       display: none;
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      white-space: nowrap;
     }
   </style>
 </head>
@@ -835,13 +890,26 @@
       <div>
         <div class="brand-title">料盒定位助手</div>
       </div>
-      <span class="brand-badge">纯享离线版</span>
+      <span class="brand-badge" id="sourceBadge">📊 Excel驱动</span>
     </div>
     <div class="header-actions">
+      <!-- 直接选择上传 Excel 按钮 -->
+      <button class="btn-icon btn-primary-sm" title="更新/载入 Excel 表" onclick="triggerExcelFileInput()">
+        <span>📂</span> 载入Excel
+      </button>
       <button class="btn-icon" title="手机扫码/二维码" onclick="openQrModal()">📱</button>
-      <button class="btn-icon" title="导出/数据维护" onclick="openAdminModal()">⚙️</button>
+      <button class="btn-icon" title="数据设置/导出" onclick="openAdminModal()">⚙️</button>
     </div>
   </header>
+
+  <!-- 隐藏的 Excel 文件上传 input -->
+  <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display:none;" onchange="handleExcelFileSelect(event)">
+
+  <!-- 数据源提示栏 -->
+  <div class="data-banner" id="dataBanner">
+    <span id="dataBannerText">正在加载 components.xlsx 数据表...</span>
+    <span style="cursor:pointer; text-decoration:underline;" onclick="triggerExcelFileInput()">更换文件</span>
+  </div>
 
   <!-- 视图切换 -->
   <div class="view-tabs">
@@ -862,34 +930,35 @@
         <div class="form-group">
           <div class="form-label">
             <span>封装规格 (Package)</span>
-            <span class="label-hint">可手动输入或点击快捷标签</span>
+            <span class="label-hint">点击标签快速筛选</span>
           </div>
-          <input type="text" id="inputPackage" class="input-box" placeholder="例如: 0805, 0603, SOP-8" oninput="onSearchChange()">
-          <div class="chips-row">
-            <span class="chip" onclick="quickSelectPkg('')">全部</span>
-            <span class="chip" onclick="quickSelectPkg('0402')">0402</span>
+          <input type="text" id="inputPackage" class="input-box" placeholder="例如: 0603, 0805, SOT-23, SOP-8" oninput="onSearchChange()">
+          <div class="chips-row" id="chipsRow">
+            <span class="chip active" onclick="quickSelectPkg('')">全部</span>
             <span class="chip" onclick="quickSelectPkg('0603')">0603</span>
             <span class="chip" onclick="quickSelectPkg('0805')">0805</span>
             <span class="chip" onclick="quickSelectPkg('1206')">1206</span>
-            <span class="chip" onclick="quickSelectPkg('SOP-8')">SOP-8</span>
             <span class="chip" onclick="quickSelectPkg('SOT-23')">SOT-23</span>
-            <span class="chip" onclick="quickSelectPkg('TO-220')">TO-220</span>
+            <span class="chip" onclick="quickSelectPkg('SOT-223')">SOT-223</span>
+            <span class="chip" onclick="quickSelectPkg('SOP-8')">SOP-8</span>
+            <span class="chip" onclick="quickSelectPkg('SOP-16')">SOP-16</span>
+            <span class="chip" onclick="quickSelectPkg('SMA')">SMA</span>
           </div>
         </div>
 
         <!-- 数值 -->
         <div class="form-group">
           <div class="form-label">
-            <span>阻值 / 容值 / 型号数值</span>
-            <span class="label-hint">例如: 10k, 100n, 4.7u, 100</span>
+            <span>阻值 / 容值 / 型号</span>
+            <span class="label-hint">例如: 10k, 100nF, 0Ω, S8050, AMS1117</span>
           </div>
-          <input type="text" id="inputValue" class="input-box" placeholder="输入数值，如 10k, 100nF, 4.7uF" oninput="onSearchChange()">
+          <input type="text" id="inputValue" class="input-box" placeholder="输入阻值、容值或芯片型号" oninput="onSearchChange()">
         </div>
 
-        <!-- 误差值 (去除百分号冗余) -->
+        <!-- 误差值 -->
         <div class="form-group">
           <div class="form-label">
-            <span>误差值 (Tolerance)</span>
+            <span>误差精度 (Tolerance)</span>
             <button class="btn-reset" onclick="resetTolerance()">清空</button>
           </div>
           <div class="tolerance-control">
@@ -910,7 +979,7 @@
       <div class="results-section">
         <div class="results-header">
           <span class="results-count" id="resultsCount">匹配到 0 个元器件</span>
-          <button class="btn-reset" onclick="clearAllFilters()">重置所有搜索</button>
+          <button class="btn-reset" onclick="clearAllFilters()">重置筛选</button>
         </div>
 
         <div class="results-list" id="resultsList">
@@ -921,18 +990,18 @@
 
     <!-- ================= 页面 2：料盒实景定位 ================= -->
     <div class="screen grid-screen" id="screenGrid">
-      <!-- 料盒选择按钮 -->
+      <!-- 料盒选择按钮 (动态由 Excel 各 Sheet 生成) -->
       <div class="box-selector-row" id="boxSelector">
-        <!-- 动态生成 1号 ~ 5号料盒 -->
+        <!-- 动态生成各个料盒副表胶囊 -->
       </div>
 
-      <!-- 定位提示条 (如果有选中高亮) -->
+      <!-- 定位提示条 -->
       <div class="location-banner" id="locationBanner" style="display: none;">
         <div class="banner-text">
           <div class="banner-title">
-            <span>🎯</span> <span id="bannerTitleText">已定位: 0805 10k ±1%</span>
+            <span>🎯</span> <span id="bannerTitleText">已定位: 0603 10k ±1%</span>
           </div>
-          <div class="banner-desc" id="bannerDescText">位于 1号料盒 · 第3行 第2列 (坐标 3-2)</div>
+          <div class="banner-desc" id="bannerDescText">位于 黄色_0603_0Ω · 第2行 第7列 (坐标 2-7)</div>
         </div>
         <button class="banner-clear" onclick="clearHighlight()">清除高亮</button>
       </div>
@@ -953,7 +1022,7 @@
         </div>
       </div>
 
-      <!-- 10行 5列 网格表格 -->
+      <!-- 网格表格 (动态根据当前料盒的行列生成) -->
       <div class="grid-card">
         <table class="grid-table" id="gridTable">
           <!-- 动态生成 -->
@@ -962,7 +1031,7 @@
     </div>
   </main>
 
-  <!-- 底部器件详情弹窗 (轻量抽屉) -->
+  <!-- 底部器件详情抽屉 -->
   <div class="modal-backdrop" id="detailModalBackdrop" onclick="closeDetailModal(event)">
     <div class="bottom-sheet" onclick="event.stopPropagation()">
       <div class="sheet-header">
@@ -972,11 +1041,11 @@
 
       <div class="detail-grid">
         <div class="detail-cell">
-          <span class="detail-k">所在料盒</span>
+          <span class="detail-k">所在料盒 (Sheet)</span>
           <span class="detail-v" id="detailBoxName">-</span>
         </div>
         <div class="detail-cell">
-          <span class="detail-k">物理坐标</span>
+          <span class="detail-k">物理网格坐标</span>
           <span class="detail-v" id="detailCoords">-</span>
         </div>
         <div class="detail-cell">
@@ -1023,182 +1092,40 @@
     </div>
   </div>
 
-  <!-- 管理员数据导出/导入弹窗 -->
+  <!-- 数据管理与 Excel 导入弹窗 -->
   <div class="modal-backdrop" id="adminModalBackdrop" onclick="closeAdminModal(event)">
     <div class="admin-modal" onclick="event.stopPropagation()">
       <div class="sheet-header">
-        <div class="sheet-title">⚙️ 数据总表维护 (管理员)</div>
+        <div class="sheet-title">⚙️ 数据总表与 Excel 维护</div>
         <button class="sheet-close" onclick="closeAdminModal()">✕</button>
       </div>
-      <p style="font-size: 12px; color: var(--text-sub);">
-        本网页为纯静态单文件，无需任何后端或谷歌账号。您可以在电脑端修改下面的数据JSON，或点击保存下载单文件直接发给产线工人：
+      <p style="font-size: 13px; color: var(--text-sub);">
+        您可以直接上传电脑中的多副表 Excel 文件 (<strong>.xlsx</strong>)，网页将自动读取每个 Sheet 并更新各个料盒：
       </p>
+
+      <div class="excel-drop-zone" onclick="triggerExcelFileInput()">
+        <span style="font-size:32px;">📊</span>
+        <div style="font-size:14px; font-weight:700; margin-top:6px; color:var(--primary);">点击或拖拽上传 Excel 表格</div>
+        <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">支持 .xlsx 格式，每个 Sheet 对应一个料盒</div>
+      </div>
+
       <div style="display:flex; gap:8px;">
-        <button class="copy-btn" style="flex:1; height:36px; font-size:13px;" onclick="downloadSingleFileHtml()">
-          💾 导出下载此单文件(HTML)
+        <button class="copy-btn" style="flex:1; height:38px; font-size:13px;" onclick="reloadDefaultExcel()">
+          🔄 重新加载仓库默认表
         </button>
-        <button class="copy-btn" style="flex:1; height:36px; font-size:13px; background:#475569;" onclick="copyCurrentJson()">
-          📋 复制数据JSON
+        <button class="copy-btn" style="flex:1; height:38px; font-size:13px; background:#475569;" onclick="exportCurrentJson()">
+          📋 导出数据JSON
         </button>
       </div>
-      <textarea id="adminJsonText" class="admin-textarea" placeholder="在此粘贴更新后的 JSON 数据..."></textarea>
-      <button class="copy-btn" style="background:#16A34A;" onclick="importJsonData()">
-        ✅ 应用新数据到网页
-      </button>
     </div>
   </div>
 
   <div class="toast" id="toast"></div>
 
   <script>
-    // ================= 默认物料数据集 (5个料盒，每个10行5列，共250格) =================
-    // 可以在电脑端随时通过总表更新替换本数据
-    const INITIAL_BOXES = [
-      { id: "box_1", name: "1号料盒 (常用贴片电阻 0805/0603)", totalRows: 10, totalCols: 5 },
-      { id: "box_2", name: "2号料盒 (高精贴片电阻 ±1%)", totalRows: 10, totalCols: 5 },
-      { id: "box_3", name: "3号料盒 (贴片电容 0402/0603/0805)", totalRows: 10, totalCols: 5 },
-      { id: "box_4", name: "4号料盒 (电感/磁珠/二极管/三极管)", totalRows: 10, totalCols: 5 },
-      { id: "box_5", name: "5号料盒 (集成IC/芯片/LDO稳压)", totalRows: 10, totalCols: 5 }
-    ];
-
-    // 生成5个料盒的真实示例数据
-    function generateInitialComponents() {
-      const list = [];
-      
-      // 1号料盒: 0805/0603 常用电阻 (部分有缺料示范)
-      const resValues = ["0Ω", "10Ω", "22Ω", "47Ω", "100Ω", "220Ω", "330Ω", "470Ω", "1k", "2k", "4.7k", "10k", "20k", "47k", "100k", "220k", "470k", "1M", "10M"];
-      for (let r = 1; r <= 10; r++) {
-        for (let c = 1; c <= 5; c++) {
-          const idx = ((r - 1) * 5 + (c - 1)) % resValues.length;
-          const pkg = (r <= 5) ? "0805" : "0603";
-          const tol = (c % 2 === 0) ? "±1%" : "±5%";
-          const isShortage = (r === 3 && c === 2) || (r === 7 && c === 4); // 示范缺料
-          list.push({
-            id: `b1_r${r}_c${c}`,
-            boxId: "box_1",
-            boxName: "1号料盒",
-            row: r,
-            col: c,
-            name: `${resValues[idx]} 电阻`,
-            value: resValues[idx],
-            package: pkg,
-            tolerance: tol,
-            isShortage: isShortage,
-            stock: isShortage ? 0 : 50
-          });
-        }
-      }
-
-      // 2号料盒: 精密贴片电阻 ±1% (0402 / 0603 / 0805)
-      const precValues = ["120Ω", "150Ω", "270Ω", "390Ω", "510Ω", "680Ω", "1.2k", "1.5k", "2.7k", "3.3k", "5.1k", "6.8k", "7.5k", "8.2k", "12k", "15k", "18k", "27k", "33k", "39k", "51k", "68k", "82k", "150k", "330k"];
-      for (let r = 1; r <= 10; r++) {
-        for (let c = 1; c <= 5; c++) {
-          const idx = ((r - 1) * 5 + (c - 1)) % precValues.length;
-          const pkg = (r <= 4) ? "0603" : (r <= 8 ? "0805" : "0402");
-          const isShortage = (r === 2 && c === 3);
-          list.push({
-            id: `b2_r${r}_c${c}`,
-            boxId: "box_2",
-            boxName: "2号料盒",
-            row: r,
-            col: c,
-            name: `${precValues[idx]} 高精电阻`,
-            value: precValues[idx],
-            package: pkg,
-            tolerance: "±1%",
-            isShortage: isShortage,
-            stock: isShortage ? 0 : 80
-          });
-        }
-      }
-
-      // 3号料盒: 贴片电容
-      const capValues = ["10pF", "22pF", "47pF", "100pF", "1nF", "10nF", "47nF", "100nF", "220nF", "1uF", "2.2uF", "4.7uF", "10uF", "22uF", "47uF"];
-      for (let r = 1; r <= 10; r++) {
-        for (let c = 1; c <= 5; c++) {
-          const idx = ((r - 1) * 5 + (c - 1)) % capValues.length;
-          const pkg = (r <= 4) ? "0603" : (r <= 7 ? "0805" : "1206");
-          const tol = (c <= 2) ? "±5%" : "±10%";
-          const isShortage = (r === 5 && c === 1);
-          list.push({
-            id: `b3_r${r}_c${c}`,
-            boxId: "box_3",
-            boxName: "3号料盒",
-            row: r,
-            col: c,
-            name: `${capValues[idx]} 贴片电容`,
-            value: capValues[idx],
-            package: pkg,
-            tolerance: tol,
-            isShortage: isShortage,
-            stock: isShortage ? 0 : 100
-          });
-        }
-      }
-
-      // 4号料盒: 二极管/三极管/MOS管/电感
-      const semiValues = ["1N4148", "SS14", "SS34", "B5819W", "S8050", "S8550", "SS8050", "2N7002", "AO3400", "AO3401", "SI2301", "SI2302", "10uH", "22uH", "47uH", "100uH", "BLM18", "MBR0520"];
-      for (let r = 1; r <= 10; r++) {
-        for (let c = 1; c <= 5; c++) {
-          const idx = ((r - 1) * 5 + (c - 1)) % semiValues.length;
-          const pkg = (r <= 3) ? "SOD-123" : (r <= 6 ? "SOT-23" : (r <= 8 ? "0805" : "SMA"));
-          list.push({
-            id: `b4_r${r}_c${c}`,
-            boxId: "box_4",
-            boxName: "4号料盒",
-            row: r,
-            col: c,
-            name: semiValues[idx],
-            value: semiValues[idx],
-            package: pkg,
-            tolerance: "-",
-            isShortage: false,
-            stock: 60
-          });
-        }
-      }
-
-      // 5号料盒: 芯片/LDO/模块
-      const icValues = ["AMS1117-3.3", "AMS1117-5.0", "ME6211C33", "LM358", "NE555", "CH340N", "CH340C", "MAX485", "TJA1050", "STM32F103", "ESP-01S", "TP4056", "XL6009", "PC817", "ULN2003"];
-      for (let r = 1; r <= 10; r++) {
-        for (let c = 1; c <= 5; c++) {
-          const idx = ((r - 1) * 5 + (c - 1)) % icValues.length;
-          const pkg = (r <= 4) ? "SOT-223" : (r <= 7 ? "SOP-8" : (r <= 9 ? "SOP-16" : "QFN-32"));
-          const isShortage = (r === 1 && c === 1);
-          list.push({
-            id: `b5_r${r}_c${c}`,
-            boxId: "box_5",
-            boxName: "5号料盒",
-            row: r,
-            col: c,
-            name: icValues[idx],
-            value: icValues[idx],
-            package: pkg,
-            tolerance: "-",
-            isShortage: isShortage,
-            stock: isShortage ? 0 : 30
-          });
-        }
-      }
-
-      return list;
-    }
-
-    // 运行时数据状态
-    let allBoxes = INITIAL_BOXES;
-    let allComponents = generateInitialComponents();
-
-    // 尝试从本地存储读取（如果用户之前导入过新数据）
-    try {
-      const saved = localStorage.getItem("LOCAL_COMPONENT_DATA");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.items && parsed.items.length) {
-          allComponents = parsed.items;
-          if (parsed.boxes) allBoxes = parsed.boxes;
-        }
-      }
-    } catch(e) {}
+    // ================= 全局状态 =================
+    let allBoxes = [];
+    let allComponents = [];
 
     // 当前筛选状态
     let filterPkg = "";
@@ -1206,22 +1133,245 @@
     let filterTol = "";
 
     // 当前高亮与选中的料盒
-    let currentBoxId = "box_1";
+    let currentBoxId = "";
     let targetComponentId = null;
     let selectedDetailItem = null;
 
-    // ================= 初始化 =================
+    // 默认尝试加载的 Excel 文件名列表 (依次回退尝试)
+    const DEFAULT_EXCEL_PATHS = [
+      "components.xlsx",
+      "料盒元器件数据表.xlsx"
+    ];
+
+    // ================= 初始化入口 =================
     window.onload = function() {
-      renderBoxPills();
-      renderGrid();
-      onSearchChange();
+      // 1. 优先尝试从本地缓存中恢复上次解析的数据
+      const cached = loadCachedData();
+      if (cached) {
+        applyParsedData(cached.boxes, cached.components, "已从本地离线缓存载入数据");
+      }
+
+      // 2. 同时异步尝试从同级目录 fetch 最新的 components.xlsx
+      fetchAndParseDefaultExcel();
     };
 
     function showToast(msg) {
       const t = document.getElementById("toast");
       t.innerText = msg;
       t.style.display = "block";
-      setTimeout(() => { t.style.display = "none"; }, 2000);
+      setTimeout(() => { t.style.display = "none"; }, 2500);
+    }
+
+    // ================= 核心：Excel 解析与动态加载逻辑 =================
+
+    // 触发隐藏的 input[type=file]
+    function triggerExcelFileInput() {
+      document.getElementById("excelFileInput").click();
+    }
+
+    // 处理用户选择本地文件
+    function handleExcelFileSelect(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const data = new Uint8Array(evt.target.result);
+          parseExcelArrayBuffer(data, file.name);
+          closeAdminModal();
+        } catch (err) {
+          alert("Excel 解析失败: " + err.message);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // 自动通过 fetch 读取仓库中的 Excel
+    async function fetchAndParseDefaultExcel() {
+      if (typeof XLSX === 'undefined') {
+        updateDataBanner("XLSX 解析库加载中或离线...", true);
+        return;
+      }
+
+      for (const path of DEFAULT_EXCEL_PATHS) {
+        try {
+          const response = await fetch(path + "?t=" + Date.now());
+          if (!response.ok) continue;
+
+          const arrayBuffer = await response.arrayBuffer();
+          parseExcelArrayBuffer(new Uint8Array(arrayBuffer), path);
+          return;
+        } catch (err) {
+          console.warn(`尝试加载 ${path} 失败:`, err);
+        }
+      }
+
+      // 如果 fetch 全部失败且没有本地缓存，则使用内建保底示例数据
+      if (!allBoxes.length) {
+        updateDataBanner("未能自动获取到 Excel 文件，已启用内置备用数据 (可点击上方【载入Excel】手动上传)", true);
+        loadFallbackBuiltinData();
+      }
+    }
+
+    function reloadDefaultExcel() {
+      fetchAndParseDefaultExcel();
+      closeAdminModal();
+      showToast("正在重新请求仓库默认 Excel...");
+    }
+
+    // 将 ArrayBuffer 解析为工作簿并提取各个副表 (Sheet)
+    function parseExcelArrayBuffer(data, sourceName) {
+      if (typeof XLSX === 'undefined') {
+        alert("SheetJS 库未加载，请检查网络连接");
+        return;
+      }
+
+      const workbook = XLSX.read(data, { type: 'array' });
+      const newBoxes = [];
+      const newComponents = [];
+
+      workbook.SheetNames.forEach((sheetName, sIdx) => {
+        const ws = workbook.Sheets[sheetName];
+        if (!ws) return;
+
+        // 转为 JSON 数组 (表头第一行)
+        const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+        if (!rows || rows.length === 0) return;
+
+        const boxId = `box_${sIdx + 1}`;
+        let maxRow = 1;
+        let maxCol = 1;
+
+        rows.forEach((r, rIdx) => {
+          // 兼容中英文列名
+          const rowNum = parseInt(r["行号"] || r["行"] || r["Row"] || 1);
+          const colNum = parseInt(r["列号"] || r["列"] || r["Col"] || 1);
+          const pkg = (r["封装规格"] || r["封装"] || r["Package"] || "-").toString().trim();
+          const val = (r["阻容值/型号"] || r["数值"] || r["型号"] || r["Value"] || "").toString().trim();
+          const name = (r["完整物料名称"] || r["物料名称"] || r["Name"] || `${val} (${pkg})`).toString().trim();
+          const tol = (r["误差精度"] || r["误差"] || r["Tolerance"] || "-").toString().trim();
+          const statusRaw = (r["库存状态"] || r["状态"] || r["Status"] || "").toString();
+          const stock = parseInt(r["参考库存量"] || r["库存"] || r["Stock"] || 50);
+
+          const isShortage = statusRaw.includes("缺") || stock === 0;
+
+          if (rowNum > maxRow) maxRow = rowNum;
+          if (colNum > maxCol) maxCol = colNum;
+
+          newComponents.push({
+            id: `${boxId}_r${rowNum}_c${colNum}_${rIdx}`,
+            boxId: boxId,
+            boxName: sheetName,
+            row: rowNum,
+            col: colNum,
+            coords: `${rowNum}-${colNum}`,
+            package: pkg,
+            value: val,
+            name: name,
+            tolerance: tol,
+            isShortage: isShortage,
+            stock: stock
+          });
+        });
+
+        // 提取颜色特征
+        let colorClass = "dot-blue";
+        if (sheetName.includes("黄")) colorClass = "dot-yellow";
+        else if (sheetName.includes("绿")) colorClass = "dot-green";
+        else if (sheetName.includes("红")) colorClass = "dot-red";
+
+        newBoxes.push({
+          id: boxId,
+          name: sheetName,
+          colorClass: colorClass,
+          totalRows: maxRow,
+          totalCols: maxCol
+        });
+      });
+
+      if (newBoxes.length > 0) {
+        // 保存到 localStorage
+        try {
+          localStorage.setItem("CACHED_EXCEL_BOXES", JSON.stringify(newBoxes));
+          localStorage.setItem("CACHED_EXCEL_COMPONENTS", JSON.stringify(newComponents));
+          localStorage.setItem("CACHED_EXCEL_SOURCE", sourceName);
+        } catch(e) {}
+
+        applyParsedData(newBoxes, newComponents, `已加载 ${sourceName} (${newBoxes.length}个料盒副表 / ${newComponents.length}个元器件)`);
+        showToast(`成功解析 Excel！共 ${newBoxes.length} 个料盒，${newComponents.length} 个元器件`);
+      } else {
+        alert("Excel 文件中未发现有效的数据副表，请检查格式！");
+      }
+    }
+
+    // 应用解析后的数据
+    function applyParsedData(boxes, components, statusMsg) {
+      allBoxes = boxes;
+      allComponents = components;
+
+      if (!currentBoxId || !allBoxes.some(b => b.id === currentBoxId)) {
+        currentBoxId = allBoxes[0].id;
+      }
+
+      updateDataBanner(statusMsg, false);
+      renderBoxPills();
+      renderGrid();
+      onSearchChange();
+    }
+
+    function updateDataBanner(text, isWarning) {
+      const banner = document.getElementById("dataBanner");
+      const bannerText = document.getElementById("dataBannerText");
+      bannerText.innerText = text;
+      banner.classList.toggle("warning", !!isWarning);
+    }
+
+    function loadCachedData() {
+      try {
+        const b = localStorage.getItem("CACHED_EXCEL_BOXES");
+        const c = localStorage.getItem("CACHED_EXCEL_COMPONENTS");
+        if (b && c) {
+          return { boxes: JSON.parse(b), components: JSON.parse(c) };
+        }
+      } catch(e) {}
+      return null;
+    }
+
+    // 保底内置数据 (防止初次无网络无文件时白屏)
+    function loadFallbackBuiltinData() {
+      const defBoxes = [
+        { id: "box_1", name: "黄色_0603_0Ω", colorClass: "dot-yellow", totalRows: 6, totalCols: 8 },
+        { id: "box_2", name: "绿色_0603_10Ω", colorClass: "dot-green", totalRows: 6, totalCols: 8 },
+        { id: "box_3", name: "蓝色_0805_0Ω", colorClass: "dot-blue", totalRows: 6, totalCols: 8 },
+        { id: "box_4", name: "黄色_SOT-23_S8050", colorClass: "dot-yellow", totalRows: 6, totalCols: 8 },
+        { id: "box_5", name: "黄色_SOT-223_AMS1117-3.3", colorClass: "dot-yellow", totalRows: 6, totalCols: 8 }
+      ];
+      const list = [];
+      const resV = ["0Ω", "10Ω", "22Ω", "47Ω", "100Ω", "220Ω", "330Ω", "470Ω", "1k", "2.2k", "4.7k", "10k", "22k", "47k", "100k", "150k", "220k", "1M"];
+      defBoxes.forEach(b => {
+        for (let r = 1; r <= b.totalRows; r++) {
+          for (let c = 1; c <= b.totalCols; c++) {
+            const idx = ((r - 1) * b.totalCols + (c - 1)) % resV.length;
+            const isShortage = (r === 2 && c === 3);
+            list.push({
+              id: `${b.id}_r${r}_c${c}`,
+              boxId: b.id,
+              boxName: b.name,
+              row: r,
+              col: c,
+              coords: `${r}-${c}`,
+              package: b.name.includes("0603") ? "0603" : (b.name.includes("0805") ? "0805" : "SOT-23"),
+              value: resV[idx],
+              name: `${resV[idx]} 元器件`,
+              tolerance: b.name.includes("10Ω") ? "±1%" : "±5%",
+              isShortage: isShortage,
+              stock: isShortage ? 0 : 60
+            });
+          }
+        }
+      });
+      applyParsedData(defBoxes, list, "已启用备用数据 (请点击右上角【载入Excel】放入你的真实文件)");
     }
 
     // ================= TAB 切换 =================
@@ -1292,11 +1442,9 @@
       filterVal = document.getElementById("inputValue").value.trim();
 
       const matched = allComponents.filter(item => {
-        // 封装匹配 (忽略大小写)
         if (filterPkg && !item.package.toLowerCase().includes(filterPkg.toLowerCase())) {
           return false;
         }
-        // 数值匹配 (忽略大小写，支持如 10k, 100n, 100)
         if (filterVal) {
           const searchV = filterVal.toLowerCase().replace(/ω|r|ohm/g, '');
           const itemV = item.value.toLowerCase().replace(/ω|r|ohm/g, '');
@@ -1305,7 +1453,6 @@
             return false;
           }
         }
-        // 误差匹配
         if (filterTol && !item.tolerance.includes(filterTol.replace(/±|%/g, ''))) {
           return false;
         }
@@ -1323,7 +1470,7 @@
       if (items.length === 0) {
         listEl.innerHTML = `
           <div class="empty-state">
-            <span style="font-size:32px;">🔍</span>
+            <span style="font-size:36px;">🔍</span>
             <span>未找到匹配的元器件</span>
             <span style="font-size:12px;">请尝试缩短搜索词或重置筛选条件</span>
           </div>
@@ -1331,11 +1478,11 @@
         return;
       }
 
-      listEl.innerHTML = items.map(item => `
+      listEl.innerHTML = items.slice(0, 100).map(item => `
         <div class="result-card ${item.isShortage ? 'is-shortage' : ''}" onclick="locateAndHighlight('${item.id}')">
           <div class="result-main">
             <div class="result-title-row">
-              <span class="result-name">${item.value} ${item.name.replace(item.value, '').trim()}</span>
+              <span class="result-name">${item.value}</span>
               <span class="badge-package">${item.package}</span>
               ${item.tolerance && item.tolerance !== '-' ? `<span class="badge-tol">${item.tolerance}</span>` : ''}
               ${item.isShortage ? `<span class="badge-shortage">⚠️ 缺料待补</span>` : ''}
@@ -1343,7 +1490,7 @@
             <div class="result-coords-text">
               <span>📦 ${item.boxName}</span>
               <span>•</span>
-              <span style="font-weight:600; color:var(--primary);">第${item.row}行 第${item.col}列 (坐标 ${item.row}-${item.col})</span>
+              <span style="font-weight:700; color:var(--primary);">第${item.row}行 第${item.col}列 (坐标 ${item.coords})</span>
             </div>
           </div>
           <div class="result-locate-action">
@@ -1351,7 +1498,7 @@
             <span>👉</span>
           </div>
         </div>
-      `).join('');
+      `).join('') + (items.length > 100 ? `<div style="text-align:center; padding:10px; font-size:12px; color:var(--text-muted);">已显示前 100 条匹配项</div>` : '');
     }
 
     // ================= 定位与高亮 =================
@@ -1370,8 +1517,8 @@
       // 更新高亮条幅
       const banner = document.getElementById("locationBanner");
       banner.style.display = "flex";
-      document.getElementById("bannerTitleText").innerText = `已高亮: ${item.package} ${item.value} ${item.tolerance}`;
-      document.getElementById("bannerDescText").innerText = `位于 ${item.boxName} · 第${item.row}行 第${item.col}列 (坐标 ${item.row}-${item.col})`;
+      document.getElementById("bannerTitleText").innerText = `已高亮: ${item.package} ${item.value} ${item.tolerance !== '-' ? item.tolerance : ''}`;
+      document.getElementById("bannerDescText").innerText = `位于 ${item.boxName} · 第${item.row}行 第${item.col}列 (坐标 ${item.coords})`;
 
       scrollHighlightIntoView();
       showToast(`已精确定位到第${item.row}行 第${item.col}列`);
@@ -1389,7 +1536,7 @@
         if (hl) {
           hl.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
         }
-      }, 100);
+      }, 120);
     }
 
     // ================= 料盒网格渲染 =================
@@ -1397,7 +1544,8 @@
       const container = document.getElementById("boxSelector");
       container.innerHTML = allBoxes.map(b => `
         <button class="box-pill ${b.id === currentBoxId ? 'active' : ''}" onclick="selectBox('${b.id}')">
-          ${b.name.split(' ')[0]}
+          <span class="box-color-dot ${b.colorClass || 'dot-blue'}"></span>
+          <span>${b.name}</span>
         </button>
       `).join('');
     }
@@ -1411,9 +1559,13 @@
     function renderGrid() {
       const box = allBoxes.find(b => b.id === currentBoxId) || allBoxes[0];
       const table = document.getElementById("gridTable");
-      
-      const totalRows = box.totalRows || 10;
-      const totalCols = box.totalCols || 5;
+      if (!box) {
+        table.innerHTML = "";
+        return;
+      }
+
+      const totalRows = box.totalRows || 6;
+      const totalCols = box.totalCols || 8;
 
       // 构建列头
       let html = '<thead><tr><th class="row-header"></th>';
@@ -1422,7 +1574,7 @@
       }
       html += '</tr></thead><tbody>';
 
-      // 快速映射当前盒子的元器件
+      // 映射当前盒子的所有元器件
       const itemMap = {};
       allComponents.filter(i => i.boxId === currentBoxId).forEach(i => {
         itemMap[`${i.row}_${i.col}`] = i;
@@ -1446,7 +1598,7 @@
             `;
           } else {
             html += `
-              <td class="grid-cell" style="opacity:0.3;">
+              <td class="grid-cell" style="opacity:0.35;">
                 <div class="cell-val">-</div>
                 <div class="cell-pkg">空</div>
               </td>
@@ -1465,13 +1617,13 @@
       if (!item) return;
       selectedDetailItem = item;
 
-      document.getElementById("sheetTitle").innerText = `${item.value} ${item.name.replace(item.value, '').trim()}`;
+      document.getElementById("sheetTitle").innerText = `${item.value} ${item.package}`;
       document.getElementById("detailBoxName").innerText = item.boxName;
-      document.getElementById("detailCoords").innerText = `第${item.row}行 第${item.col}列 (${item.row}-${item.col})`;
+      document.getElementById("detailCoords").innerText = `第${item.row}行 第${item.col}列 (坐标 ${item.coords})`;
       document.getElementById("detailPackage").innerText = item.package;
       document.getElementById("detailValue").innerText = item.value;
       document.getElementById("detailTolerance").innerText = item.tolerance || '-';
-      document.getElementById("detailStatus").innerText = item.isShortage ? "⚠️ 缺料待补 (无库存)" : "✅ 正常 (有余量)";
+      document.getElementById("detailStatus").innerText = item.isShortage ? "⚠️ 缺料待补 (无库存)" : `✅ 正常 (库存量约 ${item.stock || 50})`;
       document.getElementById("detailStatus").style.color = item.isShortage ? "var(--danger)" : "var(--success)";
 
       document.getElementById("detailModalBackdrop").classList.add("show");
@@ -1484,12 +1636,16 @@
     function copyShortageReport() {
       if (!selectedDetailItem) return;
       const text = `【缺料报备】${selectedDetailItem.boxName} 第${selectedDetailItem.row}行第${selectedDetailItem.col}列（规格: ${selectedDetailItem.package} ${selectedDetailItem.value} ${selectedDetailItem.tolerance}）现场无料，请及时补料！`;
-      navigator.clipboard.writeText(text).then(() => {
-        showToast("已复制缺料信息，可直接粘贴微信发给管理员！");
-        closeDetailModal();
-      }).catch(() => {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast("已复制缺料报备信息，可直接粘贴微信发给管理员！");
+          closeDetailModal();
+        }).catch(() => {
+          prompt("请长按复制缺料信息发给管理员:", text);
+        });
+      } else {
         prompt("请长按复制缺料信息发给管理员:", text);
-      });
+      }
     }
 
     // ================= 手机扫码弹窗 =================
@@ -1515,14 +1671,8 @@
       a.click();
     }
 
-    // ================= 管理员单文件导出与数据维护 =================
+    // ================= 管理员模态框 =================
     function openAdminModal() {
-      const payload = {
-        boxes: allBoxes,
-        items: allComponents,
-        lastUpdated: new Date().toISOString()
-      };
-      document.getElementById("adminJsonText").value = JSON.stringify(payload, null, 2);
       document.getElementById("adminModalBackdrop").classList.add("show");
     }
 
@@ -1530,47 +1680,20 @@
       document.getElementById("adminModalBackdrop").classList.remove("show");
     }
 
-    function copyCurrentJson() {
-      const val = document.getElementById("adminJsonText").value;
-      navigator.clipboard.writeText(val).then(() => {
-        showToast("已复制全部数据 JSON");
-      }).catch(() => {
-        showToast("复制失败，请手动在文本框全选复制");
-      });
-    }
-
-    function importJsonData() {
-      try {
-        const val = document.getElementById("adminJsonText").value;
-        const parsed = JSON.parse(val);
-        if (parsed.items && Array.isArray(parsed.items)) {
-          allComponents = parsed.items;
-          if (parsed.boxes) allBoxes = parsed.boxes;
-          localStorage.setItem("LOCAL_COMPONENT_DATA", JSON.stringify(parsed));
-          renderBoxPills();
-          renderGrid();
-          onSearchChange();
-          closeAdminModal();
-          showToast("数据导入并应用成功！");
-        } else {
-          alert("JSON 格式不正确，必须包含 items 数组");
-        }
-      } catch (err) {
-        alert("JSON 解析失败: " + err.message);
+    function exportCurrentJson() {
+      const payload = {
+        boxes: allBoxes,
+        items: allComponents,
+        lastUpdated: new Date().toISOString()
+      };
+      const str = JSON.stringify(payload, null, 2);
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(str).then(() => {
+          showToast("已成功复制当前全量数据 JSON！");
+        });
+      } else {
+        prompt("请复制以下 JSON 数据:", str);
       }
-    }
-
-    function downloadSingleFileHtml() {
-      // 获取当前整个页面的 HTML 代码
-      const currentDocHtml = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
-      const blob = new Blob([currentDocHtml], { type: "text/html;charset=utf-8" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "料盒定位助手.html";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      showToast("已开始下载单文件 HTML！");
     }
   </script>
 </body>
